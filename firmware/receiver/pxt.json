@@ -1,0 +1,21 @@
+{
+    "name": "shir-receiver",
+    "version": "1.0.0",
+    "description": "Battle of the Boards - receiver firmware",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "microphone": "*"
+    },
+    "files": [
+        "main.ts"
+    ],
+    "testFiles": [],
+    "targetVersions": {
+        "target": "7.1.0"
+    },
+    "supportedTargets": [
+        "microbit"
+    ],
+    "preferredEditor": "tsprj"
+}

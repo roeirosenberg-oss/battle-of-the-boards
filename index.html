@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Battle of the Boards</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='32' cy='34' r='22' fill='%23e0202c'/><rect x='14' y='8' width='36' height='14' fill='%23f2c14e'/></svg>">
+  <!-- Fonts load if online; the game falls back to system fonts (Segoe UI / Arial, both include Hebrew) offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rubik:wght@500;700;900&family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="game"></div>
+
+  <!-- ============ LOADING ============ -->
+  <div id="loading" class="screen show">
+    <div class="loader-chip"><span></span><span></span><span></span></div>
+    <p>Booting the electronic kingdom…</p>
+  </div>
+
+  <!-- ============ MAIN MENU ============ -->
+  <section id="menu" class="screen">
+    <div class="menu-inner">
+      <div class="title-block">
+        <div class="title-kicker">A MOTION-CONTROLLED BOXING ADVENTURE</div>
+        <h1 class="game-title"><span>BATTLE OF</span><br>THE BOARDS</h1>
+        <div class="title-sub">Five battles · Two fists · One throne</div>
+      </div>
+      <nav class="menu-buttons">
+        <button class="btn primary" data-action="start">Start Game</button>
+        <button class="btn" data-action="connect">Connect micro:bit</button>
+        <button class="btn" data-action="calibrate">Calibrate Controllers</button>
+        <button class="btn" data-action="settings">Settings</button>
+        <button class="btn" data-action="howto">How to Play</button>
+      </nav>
+      <div class="menu-status" id="menuStatus"></div>
+    </div>
+  </section>
+
+  <!-- ============ HARDWARE CONNECTION ============ -->
+  <section id="connect" class="screen panel-screen">
+    <div class="panel wide">
+      <header class="panel-head">
+        <h2>micro:bit Hardware</h2>
+        <button class="btn ghost small" data-action="back">← Back</button>
+      </header>
+      <div class="connect-grid">
+        <div class="card">
+          <h3>1 · USB Receiver</h3>
+          <div class="status-row"><span class="dot" id="cUsbDot"></span><span id="cUsbText">Not connected</span></div>
+          <div class="status-row sub"><span class="dot" id="cRxDot"></span><span id="cRxText">Receiver firmware: —</span></div>
+          <div class="btn-row">
+            <button class="btn primary" id="btnConnect">Connect micro:bit Receiver</button>
+            <button class="btn ghost small" id="btnDisconnect">Disconnect</button>
+          </div>
+          <button class="linkbtn" id="btnShowAll">Device not listed? Show all serial devices</button>
+          <div class="trouble" id="cTrouble"></div>
+        </div>
+
+        <div class="card">
+          <h3>2 · Hand Controllers</h3>
+          <div class="hands-live">
+            <div class="hand-card" id="liveL">
+              <div class="glove-icon left"></div>
+              <div class="hc-name">LEFT</div>
+              <div class="hc-status"><span class="dot" id="cLDot"></span><span id="cLText">—</span></div>
+              <div class="meter"><div class="meter-fill" id="cLMeter"></div><div class="meter-th" id="cLTh"></div></div>
+              <div class="hc-info" id="cLInfo">—</div>
+            </div>
+            <div class="hand-card" id="liveR">
+              <div class="glove-icon right"></div>
+              <div class="hc-name">RIGHT</div>
+              <div class="hc-status"><span class="dot" id="cRDot"></span><span id="cRText">—</span></div>
+              <div class="meter"><div class="meter-fill" id="cRMeter"></div><div class="meter-th" id="cRTh"></div></div>
+              <div class="hc-info" id="cRInfo">—</div>
+            </div>
+          </div>
+          <div class="last-punch" id="cLast">Last detected punch: —</div>
+          <label class="check"><input type="checkbox" id="chkLive"> Live motion meter (streams accelerometer level)</label>
+        </div>
+
+        <div class="card">
+          <h3>3 · Sensitivity &amp; Calibration</h3>
+          <div class="slider-row"><label>Left sensitivity</label><input type="range" min="1" max="10" step="1" id="sensL"><output id="sensLOut"></output></div>
+          <div class="slider-row"><label>Right sensitivity</label><input type="range" min="1" max="10" step="1" id="sensR"><output id="sensROut"></output></div>
+          <p class="hint">Higher = triggers with lighter punches. Lower it if ordinary movement registers as punches.</p>
+          <div class="btn-row wrap">
+            <button class="btn small" id="btnCalAll">Calibrate both (hold still)</button>
+            <button class="btn small ghost" id="btnCalL">Calibrate LEFT</button>
+            <button class="btn small ghost" id="btnCalR">Calibrate RIGHT</button>
+            <button class="btn small ghost" id="btnIdentify">Identify boards</button>
+          </div>
+          <div class="cal-msg" id="cCalMsg"></div>
+        </div>
+
+        <div class="card">
+          <h3>4 · Testing</h3>
+          <p class="hint">Fallback test controls (not the intended way to play): <kbd>J</kbd> = left punch, <kbd>K</kbd> = right punch, or the buttons below.</p>
+          <div class="btn-row">
+            <button class="btn small ghost testbtn" data-test="LEFT">Test LEFT punch</button>
+            <button class="btn small ghost testbtn" data-test="RIGHT">Test RIGHT punch</button>
+          </div>
+          <label class="check warn"><input type="checkbox" id="chkSim"> Simulation mode — automatic fake punches during fights (for testing without hardware)</label>
+          <div class="serial-mini" id="serialMini"></div>
+        </div>
+      </div>
+      <footer class="panel-foot">
+        <button class="btn" data-action="calibrate">Guided calibration →</button>
+        <button class="btn primary" data-action="start">Start Game</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ============ CALIBRATION WIZARD ============ -->
+  <section id="calibrate" class="screen panel-screen">
+    <div class="panel">
+      <header class="panel-head">
+        <h2>Calibrate Controllers</h2>
+        <button class="btn ghost small" data-action="back">← Back</button>
+      </header>
+      <ol class="steps" id="calSteps">
+        <li data-step="0">Hold still</li><li data-step="1">Left punches</li><li data-step="2">Right punches</li><li data-step="3">Normal movement</li><li data-step="4">Done</li>
+      </ol>
+      <div class="cal-body">
+        <div class="cal-visual">
+          <div class="glove-icon left big" id="calGloveL"></div>
+          <div class="glove-icon right big" id="calGloveR"></div>
+        </div>
+        <h3 id="calTitle">—</h3>
+        <p id="calText">—</p>
+        <div class="cal-counters">
+          <div><span>LEFT</span><b id="calCountL">0</b><small id="calStrL">—</small></div>
+          <div><span>RIGHT</span><b id="calCountR">0</b><small id="calStrR">—</small></div>
+        </div>
+        <div class="cal-warn" id="calWarn"></div>
+      </div>
+      <footer class="panel-foot">
+        <button class="btn ghost" id="calRestart">Restart</button>
+        <button class="btn" id="calSkip">Skip step</button>
+        <button class="btn primary" id="calNext">Begin</button>
+      </footer>
+    </div>
+  </section>
+
+  <!-- ============ SETTINGS ============ -->
+  <section id="settings" class="screen panel-screen">
+    <div class="panel">
+      <header class="panel-head">
+        <h2>Settings</h2>
+        <button class="btn ghost small" data-action="back">← Back</button>
+      </header>
+      <div class="settings-list">
+        <div class="slider-row"><label>Music volume</label><input type="range" min="0" max="1" step="0.05" id="setMusic"><output id="setMusicOut"></output></div>
+        <div class="slider-row"><label>Effects volume</label><input type="range" min="0" max="1" step="0.05" id="setSfx"><output id="setSfxOut"></output></div>
+        <div class="select-row"><label>Difficulty</label>
+          <div class="seg" id="setDifficulty"><button data-v="easy">Easy</button><button data-v="normal">Normal</button><button data-v="hard">Hard</button></div>
+        </div>
+        <div class="select-row"><label>Graphics quality</label>
+          <div class="seg" id="setQuality"><button data-v="high">High (bloom + shadows)</button><button data-v="low">Low (faster)</button></div>
+        </div>
+        <label class="check"><input type="checkbox" id="setTest"> Enable test controls (J / K keys, mouse buttons, on-screen buttons)</label>
+        <label class="check"><input type="checkbox" id="setDebug"> Show debug panel during play (also toggle with <kbd>F2</kbd>)</label>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HOW TO PLAY ============ -->
+  <section id="howto" class="screen panel-screen">
+    <div class="panel">
+      <header class="panel-head">
+        <h2>How to Play</h2>
+        <button class="btn ghost small" data-action="back">← Back</button>
+      </header>
+      <div class="howto">
+        <div class="howto-item"><b>1</b><p>Hold the <span class="blue">LEFT</span> micro:bit (shows <kbd>L</kbd>) in your left hand and the <span class="red">RIGHT</span> micro:bit (shows <kbd>R</kbd>) in your right hand. The receiver stays plugged into the computer.</p></div>
+        <div class="howto-item"><b>2</b><p>Stand in a boxing stance with space around you. <strong>Throw quick, snappy punches into the air</strong> — never at a real object. A short, sharp jab works better than a slow swing.</p></div>
+        <div class="howto-item"><b>3</b><p>Shir walks by himself. When an electronic enemy blocks the road, the fight begins. Watch the enemy <strong>wind up</strong> (it pulls its arm back and trembles) — hitting it during the wind-up can interrupt the attack and deals counter damage.</p></div>
+        <div class="howto-item"><b>4</b><p>Alternate left and right to build combos. Stronger punches do slightly more damage, but speed and rhythm matter more than force.</p></div>
+        <div class="howto-item"><b>5</b><p>Defeat all five opponents — Resistor, Arduino Uno, micro:bit V2, Raspberry Pi and the ESP32 Overlord — to claim the throne.</p></div>
+        <div class="howto-item"><b>⌨</b><p>Testing without hardware: <kbd>J</kbd> left punch, <kbd>K</kbd> right punch (<kbd>Shift</kbd> = strong), mouse left/right button. <kbd>Esc</kbd> pauses, <kbd>F2</kbd> toggles the debug panel.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ HUD ============ -->
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hp player">
+        <div class="hp-label">SHIR</div>
+        <div class="hp-bar"><div class="hp-trail" id="hpPlayerTrail"></div><div class="hp-fill" id="hpPlayer"></div></div>
+      </div>
+      <div class="hud-center">
+        <div class="fight-no" id="fightNo">FIGHT 1/5</div>
+        <div class="zone-name" id="zoneName">—</div>
+        <div class="ctrl-ind">
+          <span class="ci" id="ciL"><i></i>L</span>
+          <span class="ci usb" id="ciU"><i></i>USB</span>
+          <span class="ci" id="ciR"><i></i>R</span>
+        </div>
+      </div>
+      <div class="hp enemy" id="hpEnemyWrap">
+        <div class="hp-label" id="enemyName">—</div>
+        <div class="hp-bar"><div class="hp-trail" id="hpEnemyTrail"></div><div class="hp-fill" id="hpEnemy"></div></div>
+      </div>
+    </div>
+    <div id="combo" class="combo"></div>
+    <div id="popups"></div>
+    <div id="dmgLayer"></div>
+    <div id="testButtons">
+      <button class="tbtn left" data-test="LEFT">◀ L <small>J</small></button>
+      <button class="tbtn right" data-test="RIGHT"><small>K</small> R ▶</button>
+    </div>
+    <div id="simBadge" class="sim-badge hidden">SIMULATION MODE</div>
+  </div>
+  <div id="vignette"></div>
+  <div id="flash"></div>
+  <div id="banner"></div>
+  <div id="intro" class="intro hidden">
+    <div class="intro-num" id="introNum"></div>
+    <div class="intro-name" id="introName"></div>
+    <div class="intro-title" id="introTitle"></div>
+  </div>
+  <div id="letterbox" class="letterbox"><div></div><div></div></div>
+
+  <!-- ============ PAUSE / DEFEAT / ENDING ============ -->
+  <section id="pause" class="screen dim">
+    <div class="panel small-panel">
+      <h2>Paused</h2>
+      <button class="btn primary" data-action="resume">Resume</button>
+      <button class="btn" data-action="connect">micro:bit Hardware</button>
+      <button class="btn" data-action="settings">Settings</button>
+      <button class="btn ghost" data-action="menu">Main Menu</button>
+    </div>
+  </section>
+  <section id="defeat" class="screen dim">
+    <div class="panel small-panel">
+      <h2 class="red">Knocked Out!</h2>
+      <p id="defeatText">The enemy got the better of you this time.</p>
+      <button class="btn primary" data-action="retry">Retry this fight</button>
+      <button class="btn ghost" data-action="menu">Main Menu</button>
+    </div>
+  </section>
+  <div id="ending" class="ending hidden">
+    <h1 class="he-title" id="heTitle"></h1>
+    <div class="ending-sub" id="endingSub">ALL FIVE BOARDS DEFEATED</div>
+    <div class="ending-stats" id="endingStats"></div>
+    <div class="ending-buttons hidden" id="endingButtons">
+      <button class="btn primary" data-action="playagain">Play Again</button>
+      <button class="btn" data-action="menu">Main Menu</button>
+    </div>
+  </div>
+
+  <!-- ============ DEBUG PANEL ============ -->
+  <aside id="debug" class="hidden">
+    <div class="dbg-head">DEBUG <button id="dbgClose">×</button></div>
+    <div class="dbg-grid" id="dbgGrid"></div>
+    <div class="dbg-log" id="dbgLog"></div>
+  </aside>
+
+  <noscript><p style="color:#fff;padding:2em">This game needs JavaScript.</p></noscript>
+  <script>
+    // If something fails during loading, explain it on the loading screen instead of hanging.
+    window.addEventListener('error', function (e) {
+      var l = document.getElementById('loading');
+      if (l && l.classList.contains('show')) l.querySelector('p').innerHTML = 'Loading failed: ' + (e.message || 'unknown error') + '<br>Use Chrome or Edge and make sure game.bundle.js is in the same folder as index.html.';
+    });
+  </script>
+  <!-- game.bundle.js = all of src/ bundled into one file, so the game also opens by double-clicking index.html.
+       Rebuild after editing src/:  npx esbuild src/main.js --bundle --format=iife --alias:three=./vendor/three.module.js --alias:three/addons=./vendor/addons --outfile=game.bundle.js -->
+  <script src="game.bundle.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,14 @@
+{
+  "name": "shir-king-of-interaction",
+  "version": "1.0.0",
+  "description": "First-person 3D motion-controlled boxing game for three BBC micro:bit V2 boards",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js 8080",
+    "test": "node tests/input.test.mjs"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "three": "^0.169.0"
+  }
+}

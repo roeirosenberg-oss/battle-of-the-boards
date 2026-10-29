@@ -1,0 +1,21 @@
+{
+    "name": "shir-left-hand",
+    "version": "1.0.0",
+    "description": "Battle of the Boards - left-hand firmware",
+    "dependencies": {
+        "core": "*",
+        "radio": "*",
+        "microphone": "*"
+    },
+    "files": [
+        "main.ts"
+    ],
+    "testFiles": [],
+    "targetVersions": {
+        "target": "7.1.0"
+    },
+    "supportedTargets": [
+        "microbit"
+    ],
+    "preferredEditor": "tsprj"
+}
