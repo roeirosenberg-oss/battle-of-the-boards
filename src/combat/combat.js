@@ -123,7 +123,7 @@ export class Combat extends Emitter {
     this.ui.damageNumber(dmg, res.point, big);
     if (this.combo >= 3) this.ui.setCombo(this.combo);
     if (counterMult > 1) this.ui.popup('COUNTER!', 'combo');
-    this.emit('hit', { hand, dmg, health: enemy.health });
+    this.emit('hit', { hand, dmg, health: enemy.health, point: res.point.clone(), strength01 });
     this.ui.setEnemyHealth(enemy.health / enemy.config.maxHealth);
 
     if (enemy.health <= 0) this._knockout();

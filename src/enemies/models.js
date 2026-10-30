@@ -384,7 +384,68 @@ function buildESP32() {
   };
 }
 
+
+// ----------------------------------------------------------------- Easter egg: the Tin Woodman
+// Based on W. W. Denslow's original 1900 illustrations for "The Wonderful Wizard
+// of Oz" (public domain): tin body with rivets, funnel hat, axe over the shoulder.
+function buildTinWoodman() {
+  const tinCol = 0xb9c0c7;
+  const rig = new EnemyRig({
+    hipHeight: 0.92, hipWidth: 0.12, legUpper: 0.44, legLower: 0.42, legThick: 0.07, footSize: 0.2,
+    shoulderY: 0.62, shoulderX: 0.27, armUpper: 0.32, armLower: 0.3, armThick: 0.055, fistSize: 0.07,
+    limbColor: tinCol, jointColor: 0x8d949b, fistColor: tinCol, footColor: 0x9aa1a8, fistStyle: 'robot', mechanical: false,
+  });
+  const tin = rig.mat(tinCol, { metalness: 0.9, roughness: 0.32 });
+  const tinDark = rig.mat(0x8d949b, { metalness: 0.9, roughness: 0.4 });
+  const body = new THREE.Group();
+  // stove-pipe torso
+  const torso = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.18, 0.62, 24), tin);
+  torso.position.y = 0.33; body.add(torso);
+  for (const y of [0.06, 0.62]) {
+    const band = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.018, 8, 28), tinDark);
+    band.rotation.x = Math.PI / 2; band.position.y = y; body.add(band);
+  }
+  // rivets down the front
+  const rivetGeo = new THREE.SphereGeometry(0.014, 8, 6);
+  for (let i = 0; i < 6; i++) {
+    const r = new THREE.Mesh(rivetGeo, tinDark);
+    r.position.set(0, 0.12 + i * 0.09, 0.195); body.add(r);
+  }
+  // neck + can-shaped head
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 0.08, 12), tinDark);
+  neck.position.y = 0.68; body.add(neck);
+  const head = new THREE.Group(); head.position.y = 0.84; body.add(head);
+  const skull = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.22, 24), tin);
+  head.add(skull);
+  const jaw = new THREE.Mesh(new THREE.TorusGeometry(0.12, 0.012, 6, 24), tinDark);
+  jaw.rotation.x = Math.PI / 2; jaw.position.y = -0.1; head.add(jaw);
+  // the funnel hat: a cone opening upward with a spout on top
+  const funnel = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.05, 0.16, 24, 1, true), rig.mat(tinCol, { metalness: 0.9, roughness: 0.3, side: THREE.DoubleSide }));
+  funnel.position.y = 0.19; funnel.rotation.x = Math.PI; head.add(funnel);
+  const spout = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.14, 12), tin);
+  spout.position.y = 0.33; head.add(spout);
+  // simple friendly face
+  const face = new CartoonFace({ eyeSize: 0.032, eyeSpacing: 0.05, eyeY: 0.03, mouthWidth: 0.07, mouthY: -0.05, lidColor: 0x9aa1a8, browColor: 0x50565c, pupilColor: 0x1a1a1a });
+  face.group.position.set(0, 0, 0.115); head.add(face.group);
+  rig.registerMaterials(face.materials);
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(0.018, 0.07, 10), tin);
+  nose.rotation.x = Math.PI / 2; nose.position.set(0, -0.005, 0.15); head.add(nose);
+  rig.torso.add(body);
+  // the axe, held in the right hand and resting on the shoulder
+  const axe = new THREE.Group();
+  const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.75, 8), rig.mat(0x8a5a2b, { roughness: 0.8 }));
+  handle.position.y = 0.3; axe.add(handle);
+  const blade = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.12, 0.015), rig.mat(0xd8dde2, { metalness: 1, roughness: 0.25 }));
+  blade.position.set(0.07, 0.62, 0); axe.add(blade);
+  axe.rotation.set(-0.5, 0, 0);
+  axe.position.y = -0.1;
+  rig.arms.R.wrist.add(axe);
+  rig.root.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  return { rig, face, lookHeight: 1.7, update() {} };
+}
+
 export const MODEL_BUILDERS = {
+  tinwoodman: buildTinWoodman,
   resistor: buildResistor,
   arduino: buildArduino,
   microbit: buildMicrobit,

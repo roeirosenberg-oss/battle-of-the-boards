@@ -7,6 +7,7 @@ import { std, metal, gold, glow, glowUnique, basic, roundedBoardGeometry, planar
 import { ArcPool } from '../fx/lightning.js';
 import { buildThroneHall } from './throneHall.js';
 import { mergeStatic } from './staticMerge.js';
+import { EASTER_EGG_IMAGE } from './easterEggImage.js';
 
 function rng(seed) {
   let s = seed >>> 0;
@@ -39,6 +40,7 @@ export class World {
     this._buildArenas();
     this._buildZones();
     this._buildDust();
+    this._buildEasterEgg();
 
     this.throneHall = buildThroneHall(this);
     this.root.add(this.throneHall.group);
@@ -678,6 +680,57 @@ export class World {
       this.arcs.fire(a1, b1, 0.25);
       this._flash = 0.25;
     });
+  }
+
+  // ---------------------------------------------------------------- easter egg
+  // A framed portrait standing off the path in the ESP32 zone, just before the
+  // final boss. Set back and turned slightly toward the road so it's easy to miss.
+  _buildEasterEgg() {
+    const d = ROUTE.encounterAt[4] - 22;   // ~22 m before the final arena
+    const lateral = -15;                   // left side, well off the path
+    const g = new THREE.Group();
+    g.userData.dynamic = true;             // keep it out of the static merge
+    const W = 3.0, H = 4.0;
+    const img = new Image();
+    const tex = new THREE.Texture(img);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    img.onload = () => { tex.needsUpdate = true; };
+    img.src = EASTER_EGG_IMAGE;
+    const pic = new THREE.Mesh(new THREE.PlaneGeometry(W, H), new THREE.MeshBasicMaterial({ map: tex, toneMapped: false, color: 0xd8d8d8 }));
+    pic.position.set(0, 3.6, 0.09);
+    g.add(pic);
+    // frame
+    const frameM = std(0x15151c, { metalness: 0.8, roughness: 0.35 });
+    const back = new THREE.Mesh(new THREE.BoxGeometry(W + 0.35, H + 0.35, 0.14), frameM);
+    back.position.set(0, 3.6, 0);
+    g.add(back);
+    const edgeM = glowUnique(0x3cf2ff, 1.4);
+    for (const [x, y, w, h] of [[0, H / 2 + 0.17, W + 0.4, 0.05], [0, -H / 2 - 0.17, W + 0.4, 0.05], [-W / 2 - 0.17, 0, 0.05, H + 0.4], [W / 2 + 0.17, 0, 0.05, H + 0.4]]) {
+      const e = new THREE.Mesh(new THREE.BoxGeometry(w, h, 0.05), edgeM);
+      e.position.set(x, 3.6 + y, 0.09);
+      g.add(e);
+    }
+    // two thin legs, like a gallery stand
+    for (const sx of [-1.1, 1.1]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.6, 8), metal());
+      leg.position.set(sx, 0.8, -0.05);
+      g.add(leg);
+    }
+    // soft light so the portrait reads in the dark storm zone
+    const lamp = new THREE.PointLight(0x9ff6ff, 6, 7, 2);
+    lamp.position.set(0, 4.2, 2.2);
+    g.add(lamp);
+    shadowAll(g);
+    pic.castShadow = false;
+    // place it and turn it so it faces the walker coming down the path
+    const f = this.frame(d);
+    g.position.copy(f.pos).addScaledVector(f.side, lateral);
+    const viewer = this.frame(d - 14).pos;
+    g.lookAt(viewer.x, 0, viewer.z);
+    this.root.add(g);
+    this.easterEgg = g;
+    this.animators.push((dt, t) => { edgeM.emissiveIntensity = 1.1 + Math.sin(t * 1.5) * 0.4; });
   }
 
   // ---------------------------------------------------------------- dust

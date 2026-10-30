@@ -18,6 +18,8 @@ import { TestInput } from './input/testInput.js';
 import { CalibrationWizard } from './input/calibration.js';
 import { UI, ConnectScreen, DebugPanel, bindSettings } from './ui/ui.js';
 import { VictorySequence } from './ending/victorySequence.js';
+import { Tutorial } from './ui/tutorial.js';
+import { MiniPops } from './fx/miniPops.js';
 import { DIFFICULTY } from './core/settings.js';
 
 const params = new URLSearchParams(location.search);
@@ -43,6 +45,27 @@ const hands = new Hands(engine.camera);
 const sparks = new SparkSystem(engine.scene);
 const confetti = new Confetti(engine.scene);
 const arcs = new ArcPool(engine.scene, 18, { color: 0xa8f7ff, jitter: 0.2 });
+const miniPops = new MiniPops(engine);
+
+// ------------------------------------------------------------------ easter egg: the Tin Woodman
+// Strolls back and forth beside the path in Arduino Avenue, axe on his shoulder.
+const tinMan = new Enemy({ id: 'tinwoodman', name: 'Tin Woodman', model: 'tinwoodman', scale: 1, maxHealth: 1, zone: 1 });
+tinMan.alive = false;
+{
+  const lateral = -12;                       // left side, away from the path
+  const ends = [52, 70].map(d => { const f = world.frame(d); return f.pos.clone().addScaledVector(f.side, lateral).setY(0); });
+  tinMan.root.position.copy(ends[0]);
+  let leg = 1;
+  const stroll = () => {
+    tinMan.walkTo(ends[leg], 0.9, () => {
+      // pause, glance around, then turn back
+      tinMan.setAction('idle', 0, { face: 'happy' });
+      setTimeout(() => { leg = 1 - leg; stroll(); }, 1400);
+    });
+  };
+  stroll();
+  engine.scene.add(tinMan.root);
+}
 const combat = new Combat({ engine, hands, cameraRig, audio, ui, sparks, arcs });
 const ending = new VictorySequence({ scene: engine.scene, world, cameraRig, hands, audio, ui, sparks, confetti, arcs });
 const connectScreen = new ConnectScreen({ serial, controllers, testInput, audio });
@@ -64,7 +87,7 @@ const game = {
   totalStats: { hits: 0, misses: 0, maxCombo: 0 },
   returnScreen: 'menu',
 };
-window.__shir = { game, engine, controllers, combat, serial, world, settings, cameraRig, hands, ending, THREE }; // for debugging in the console
+window.__shir = { game, engine, controllers, combat, serial, world, settings, cameraRig, hands, ending, miniPops, tinMan, THREE }; // for debugging in the console
 
 const debug = new DebugPanel({
   serial, controllers, engine,
@@ -73,7 +96,9 @@ const debug = new DebugPanel({
 
 const wizard = new CalibrationWizard({ serial, controllers, onStart: () => startGame() });
 
-const GAMEPLAY = ['walking', 'intro', 'fighting', 'victory'];
+const GAMEPLAY = ['tutorial', 'walking', 'intro', 'fighting', 'victory'];
+
+const tutorial = new Tutorial({ audio, onDone: () => beginJourney() });
 
 // ------------------------------------------------------------------ helpers
 function eyeAt(d) {
@@ -138,11 +163,30 @@ function startGame(fromFight = 0) {
   ui.setSimBadge(testInput.simulation);
   ui.setFight(game.fight, ENEMIES.length, ENEMIES[game.fight].name, ZONES[world.zoneAt(game.routeD)].name);
   audio.playMusic('explore');
+  tutorial.hide();
+  if (fromFight === 0) {
+    // teach the controls first: right punch, left punch
+    hands.setMode('guard');
+    cameraRig.walking = false;
+    setState('tutorial');
+    tutorial.start();
+    return;
+  }
   setState('walking');
-  ui.banner(fromFight === 0 ? 'THE JOURNEY BEGINS' : `FIGHT ${fromFight + 1}`, 'info', 1.8);
+  ui.banner(`FIGHT ${fromFight + 1}`, 'info', 1.8);
+}
+
+function beginJourney() {
+  if (game.state !== 'tutorial') return;
+  hands.setMode('walk');
+  game.walkRamp = 0;
+  setState('walking');
+  ui.banner('THE JOURNEY BEGINS', 'info', 1.8);
 }
 
 function toMenu() {
+  miniPops.hideAll();
+  tutorial.hide();
   ending.stop();
   combat.stop();
   clearEnemies();
@@ -165,6 +209,7 @@ function beginIntro() {
   game.enemy = e;
   game.ai = new EnemyAI(e, DIFFICULTY[settings.get('difficulty')] || DIFFICULTY.normal);
   const cfg = ENEMIES[i];
+  miniPops.prepare(cfg);
   setState('intro');
   cameraRig.walking = false;
   hands.setMode('guard');
@@ -227,6 +272,9 @@ combat.on('victory', ({ stats }) => {
   ui.banner(last ? 'ALL FIVE DEFEATED!' : 'VICTORY!', 'victory', 2.0);
   ui.popup(`${i + 1} / ${ENEMIES.length} CLEARED · health restored`, 'combo');
 });
+
+// every landed punch: a firework of tiny copies of the enemy
+combat.on('hit', (e) => miniPops.burst(e.point, e.strength01));
 
 combat.on('defeat', () => {
   setState('defeat');
@@ -334,6 +382,7 @@ function fightCameraUpdate() {
 controllers.on('punch', (p) => {
   if (game.paused || !GAMEPLAY.includes(game.state)) return;
   combat.onPunchInput(p.hand, p.strength, true);
+  if (game.state === 'tutorial') tutorial.onPunch(p.hand);
 });
 
 const canvasEl = engine.renderer.domElement;
@@ -417,6 +466,8 @@ engine.addUpdater((dt, rawDt) => {
   cameraRig.update(dt);
   world.update(dt, engine.camera.position, game.state === 'menu' ? 10 : (game.state.startsWith('ending') ? ROUTE.throneAt : game.routeD));
   sparks.update(dt);
+  tinMan.update(dt, null);
+  miniPops.update(dt);
   arcs.update(dt);
   confetti.update(dt, performance.now() / 1000);
   debug.update(rawDt);
@@ -446,9 +497,9 @@ engine.start();
 serial.tryAutoConnect();
 requestAnimationFrame(() => requestAnimationFrame(() => {
   document.getElementById('loading').classList.remove('show');
-  if (DEV.ending) { startGame(0); game.fight = ENEMIES.length; clearEnemies(); game.enemies = [null, null, null, null, null]; game.routeD = ROUTE.throneAt - 30; }
+  if (DEV.ending) { startGame(0); tutorial.hide(); setState('walking'); hands.setMode('walk'); game.fight = ENEMIES.length; clearEnemies(); game.enemies = [null, null, null, null, null]; game.routeD = ROUTE.throneAt - 30; }
   else if (DEV.skipTo !== null) startGame(Math.max(0, Math.min(4, DEV.skipTo)));
-  else if (DEV.autostart) startGame(0);
+  else if (DEV.autostart) { startGame(0); if (params.has('notutorial')) { tutorial.hide(); beginJourney(); } }
   else { ui.show('menu'); }
 }));
 // Browsers start audio only after a user gesture.

@@ -231,3 +231,52 @@ input[type=range] { accent-color: var(--gold); width: 100%; }
 .dbg-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; padding: 8px 10px; color: #cfdcf0; }
 .dbg-grid b { color: var(--muted); font-weight: 400; }
 .dbg-log { overflow: auto; padding: 6px 10px 10px; max-height: 260px; white-space: pre; color: #9fb7d6; border-top: 1px solid rgba(60,242,255,0.15); }
+
+/* ---------------- tutorial ---------------- */
+.tutorial { position: fixed; left: 50%; top: 13vh; transform: translateX(-50%); z-index: 18; width: 300px; padding: 22px 26px 18px; text-align: center;
+  background: rgba(8, 10, 22, 0.62); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.10); border-radius: 18px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  --tc: #ff4a5c; animation: tutIn 0.5s cubic-bezier(.2, 1.2, .4, 1) both; pointer-events: auto; }
+.tutorial[data-hand="LEFT"] { --tc: #4f86ff; }
+.tutorial.out { animation: tutOut 0.4s ease forwards; }
+@keyframes tutIn { from { opacity: 0; transform: translate(-50%, -14px) scale(0.96); } to { opacity: 1; transform: translate(-50%, 0) scale(1); } }
+@keyframes tutOut { to { opacity: 0; transform: translate(-50%, -14px) scale(0.96); } }
+.tut-step { font-family: var(--font-display); font-size: 10px; letter-spacing: 0.35em; color: rgba(255, 255, 255, 0.45); }
+.tut-demo { width: 130px; height: 130px; display: block; margin: 6px auto 4px; overflow: visible; }
+.tut-ring { fill: none; stroke: rgba(255, 255, 255, 0.14); stroke-width: 1.5; transform-origin: 60px 38px; transform-box: view-box; }
+.tut-lines line { stroke: var(--tc); stroke-width: 2.5; stroke-linecap: round; opacity: 0; }
+.tut-fist, .tut-thumb { fill: var(--tc); }
+.tut-cuff { fill: rgba(255, 255, 255, 0.85); }
+.tut-knuckle { fill: none; stroke: rgba(0, 0, 0, 0.25); stroke-width: 2; stroke-linecap: round; }
+.tut-glove { transform-origin: 60px 64px; transform-box: view-box; }
+.tutorial[data-hand="LEFT"] .tut-glove { transform: scale(-0.62, 0.62); }
+.tut-demo.play .tut-glove { animation: tutJab 1.7s cubic-bezier(.3, 0, .2, 1) infinite; }
+.tutorial[data-hand="LEFT"] .tut-demo.play .tut-glove { animation-name: tutJabL; }
+.tut-demo.play .tut-lines line { animation: tutLines 1.7s ease-out infinite; }
+.tut-demo.play .tut-ring { animation: tutRing 1.7s ease-out infinite; }
+@keyframes tutJab {
+  0%, 18% { transform: translateY(18px) scale(0.62); }
+  30% { transform: translateY(24px) scale(0.56); }
+  42%, 54% { transform: translateY(-22px) scale(0.95); }
+  80%, 100% { transform: translateY(18px) scale(0.62); } }
+@keyframes tutJabL {
+  0%, 18% { transform: translateY(18px) scale(-0.62, 0.62); }
+  30% { transform: translateY(24px) scale(-0.56, 0.56); }
+  42%, 54% { transform: translateY(-22px) scale(-0.95, 0.95); }
+  80%, 100% { transform: translateY(18px) scale(-0.62, 0.62); } }
+@keyframes tutLines { 0%, 34% { opacity: 0; transform: translateY(6px); } 44% { opacity: 1; transform: translateY(0); } 62%, 100% { opacity: 0; transform: translateY(-4px); } }
+@keyframes tutRing { 0%, 40% { stroke: rgba(255, 255, 255, 0.14); transform: scale(1); } 46% { stroke: var(--tc); transform: scale(1.08); } 70%, 100% { stroke: rgba(255, 255, 255, 0.14); transform: scale(1); } }
+.tut-check { opacity: 0; }
+.tut-check circle { fill: none; stroke: #52ff8a; stroke-width: 3; stroke-dasharray: 176; stroke-dashoffset: 176; }
+.tut-check path { fill: none; stroke: #52ff8a; stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 44; stroke-dashoffset: 44; }
+.tutorial.done .tut-glove, .tutorial.done .tut-lines, .tutorial.done .tut-ring { opacity: 0; transition: opacity 0.15s; }
+.tutorial.done .tut-check { opacity: 1; }
+.tutorial.done .tut-check circle { animation: tutDraw 0.45s ease-out forwards; }
+.tutorial.done .tut-check path { animation: tutDraw 0.35s 0.3s ease-out forwards; }
+@keyframes tutDraw { to { stroke-dashoffset: 0; } }
+.tut-title { font-family: var(--font-display); font-weight: 800; font-size: 17px; letter-spacing: 0.04em; color: #fff; }
+.tut-sub { margin-top: 6px; font-size: 13px; color: rgba(255, 255, 255, 0.6); min-height: 18px; }
+.tutorial.nope { animation: tutNope 0.35s; }
+@keyframes tutNope { 20%, 60% { transform: translateX(calc(-50% - 7px)); } 40%, 80% { transform: translateX(calc(-50% + 7px)); } }
+.tut-skip { margin-top: 12px; background: none; border: none; color: rgba(255, 255, 255, 0.4); font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase; cursor: pointer; }
+.tut-skip:hover { color: rgba(255, 255, 255, 0.85); }
